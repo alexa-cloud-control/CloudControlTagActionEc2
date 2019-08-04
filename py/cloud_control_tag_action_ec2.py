@@ -71,10 +71,10 @@ def cloud_control_state_action_ec2(event, context):
         aliases = commands[command_key]
         if action in aliases:
             if (
-                (command_key == 'create_tags'
+                    (command_key == 'create_tags'
                  and tag_status in {'tag_not_found', 'tag_different'})
                     or (command_key == 'delete_tags'
-                    and tag_status in {'tag_match', 'tag_different'})
+                        and tag_status in {'tag_match', 'tag_different'})
                 ):
                 ec2_client.command_key(
                     DryRun=False,
