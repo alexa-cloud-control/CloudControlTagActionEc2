@@ -72,7 +72,7 @@ def cloud_control_state_action_ec2(event, context):
         if action in aliases:
             if (
                 (command_key == 'create_tags'
-                    and tag_status in {'tag_not_found', 'tag_different'})
+                 and tag_status in {'tag_not_found', 'tag_different'})
                     or (command_key == 'delete_tags'
                     and tag_status in {'tag_match', 'tag_different'})
                 ):
