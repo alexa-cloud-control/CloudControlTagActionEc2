@@ -37,7 +37,6 @@ def cloud_control_state_action_ec2(event, context):
             },
         ],
     )
-    tag_status = "tag_not_found" #2
     for tag in tag_response['Tags']:
         if tag['Key'] == event["body"]["TagKey"]:
             if tag['Value'] == event["body"]["TagValue"]:
@@ -50,7 +49,9 @@ def cloud_control_state_action_ec2(event, context):
                     event["body"]["TagKey"]
                 )
                 tag_status = "tag_different" #1
-        tmp_msg = "Tag {} not found!".format(event["body"]["TagKey"])
+        else:
+            tag_status = "tag_not_found" #2
+            tmp_msg = "Tag {} not found!".format(event["body"]["TagKey"])
 
     commands = {
         'create_tags': ['create', 'add', 'update', 'change'],
@@ -88,10 +89,12 @@ def cloud_control_state_action_ec2(event, context):
                     ]
                 )
 
-    msg = "{}. Tag key {} for instance {} {}d.".format(
-        .tmp_msg, 
-        event["body"]["TagKey"]capitalize(), 
-        event["body"]["InstanceName"], 
-        event["body"]["TagAction"]
+    msg = (
+        "{}. Tag key {} for instance {} {}d.".format(
+            tmp_msg,
+            event["body"]["TagKey"].capitalize(), 
+            event["body"]["InstanceName"], 
+            event["body"]["TagAction"]
+        )
     )
     return {"msg": msg}
