@@ -37,95 +37,61 @@ def cloud_control_state_action_ec2(event, context):
             },
         ],
     )
-    tag_status = "not_found" #2
+    tag_status = "tag_not_found" #2
     for tag in tag_response['Tags']:
         if tag['Key'] == event["body"]["TagKey"]:
             if tag['Value'] == event["body"]["TagValue"]:
-                msg = "Tag {} with value {} found.".format(
+                tmp_msg = "Tag {} with value {} found.".format(
                     event["body"]["TagKey"], event["body"]["TagValue"]
                 )
                 tag_status = "tag_match" #0
             else:
-                msg = "tag {} found, but value is different".format(
+                tmp_msg = "tag {} found, but value is different".format(
                     event["body"]["TagKey"]
                 )
                 tag_status = "tag_different" #1
-        msg = "Tag {} not found!".format(event["body"]["TagKey"])
+        tmp_msg = "Tag {} not found!".format(event["body"]["TagKey"])
 
+    commands = {
+        'create_tags': ['create', 'add', 'update', 'change'],
+        'delete_tags': ['delete', 'remove']
+    }
 
+    action = event["body"]["TagAction"]
 
-# ------- To refactor
+    if action not in commands:
+        msg = (
+            "I cannot perform {}. "
+            "Nothing like this exists in my database."
+        ).format(action)
+        return {"msg": msg}
 
-def ec_tag_action(ec_params):
-    """Add, remove, update Ec2 tag"""
-    ec2_client = boto3.client('ec2')
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.INFO)
-    msg = ""
-    success_code, resource_id = validate_ec2_name(ec_params[0])
-    if not success_code == 0:
-        msg = "Cannot find instance {}.".format(ec_params[0])
-        return 99, msg
-    if ec_params[1] == 'create':
-        success_code, msg = ec_tags_describe(
-            resource_id[0], ec_params[2].capitalize(), ec_params[3]
-        )
-        if success_code == 2:
-            ec2_tag_action = ec2_client.create_tags(
-                DryRun=False,
-                Resources=[
-                    resource_id[0],
-                ],
-                Tags=[
-                    {
-                        'Key': ec_params[2].capitalize(),
-                        'Value': ec_params[3]
-                    },
-                ]
-            )
-        else:
-            return 99, msg
-    elif ec_params[1] == 'delete':
-        success_code, msg = ec_tags_describe(
-            resource_id[0], ec_params[2].capitalize(), ec_params[3]
-        )
-        if not success_code == 0:
-            return 1, msg
-        ec2_tag_action = ec2_client.delete_tags(
-            DryRun=False,
-            Resources=[
-                resource_id[0],
-            ],
-            Tags=[
-                {
-                    'Key': ec_params[2].capitalize(),
-                    'Value': ec_params[3]
-                },
-            ]
-        )
-    elif ec_params[1] == 'update':
-        success_code, msg = ec_tags_describe(
-            resource_id[0], ec_params[2].capitalize(), ec_params[3]
-        )
-        if success_code == 1:
-            ec2_tag_action = ec2_client.create_tags(
-                DryRun=False,
-                Resources=[
-                    resource_id[0],
-                ],
-                Tags=[
-                    {
-                        'Key': ec_params[2].capitalize(),
-                        'Value': ec_params[3]
-                    },
-                ]
-            )
-        else:
-            return 99, msg
-    else:
-        msg = "No idea what to do, sorry..."
-        return 0, msg
-    msg = "Tag key {} for instance {} {}d.".format(
-        ec_params[2].capitalize(), ec_params[0], ec_params[1]
+    for command_key in commands:
+        aliases = commands[command_key]
+        if action in aliases:
+            if (
+                (command_key == 'create_tags' 
+                and tag_status in {'tag_not_found', 'tag_different'})
+                or (command_key == 'delete_tags'
+                and tag_status in {'tag_match', 'tag_different'})
+                ):
+                ec2_client.command_key(
+                    DryRun=False,
+                    Resources=[
+                        ec2_instance,
+                    ],
+                    Tags=[
+                        {
+                            'Key': event["body"]["TagKey"].capitalize(),
+                            'Value': event["body"]["TagValue"]
+                        },
+                    ]
+                )
+
+    msg = "{}. Tag key {} for instance {} {}d.".format(
+        .tmp_msg, 
+        event["body"]["TagKey"]capitalize(), 
+        event["body"]["InstanceName"], 
+        event["body"]["TagAction"]
     )
-    return 0, msg
+    return {"msg": msg}
