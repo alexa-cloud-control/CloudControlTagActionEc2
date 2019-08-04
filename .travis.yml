@@ -31,23 +31,23 @@ jobs:
         - docker pull almerhor/pylint:default
         - docker run --rm -v $(pwd):/pylint -v $(pwd)/test:/tmp/config-custom almerhor/pylint:default py/cloud_control_tag_action_ec2.py requirements-custom.txt
     
-    # - stage: Perform tests
-    #   dist: trusty
-    #   language: java
-    #   sudo: required
-    #   addons:
-    #     sonarcloud:
-    #       organization: "alexa-cloud-control"
-    #       token: 
-    #         secure: ""
+    - stage: Perform tests
+      dist: trusty
+      language: java
+      sudo: required
+      addons:
+        sonarcloud:
+          organization: "alexa-cloud-control"
+          token: 
+            secure: "ZiGWzCSIhRV0QRJmX4vupBPl3To1/oImCH4vfkgsi8nHM31aWItmTUlwg1o3N+m/QRotsc/oze5pY4nTKB3SVcNI2NP6UHcD2+An6ZDyVdRPVQ9ZlADnxCPgCIuNeaQ8S4Wd3/zSPtIk8QPM7n9JQJT8CJBEkEO3tv6zbWHsTgzjlEPdZMynZfngoekgG9wk8chFIRS/p09NOrryPiX9rkf/n783T9oqfHd6QlbGqqD/L0rTsZO4C6bkLmxYEb2Gg13o5tqSquO7XJBpsXKcd7aSXLKM7rZlLkSTM+388fcQQKiWKqoWU+OKlLNLs3VyUFUQ2ORPYmu9lM0wjaIAWQ+TMyB4JyYmbNrRh+bQIPO6NN4mgkZjNPWbOOtJZEtOQbo9nYb/y0oT6w/Hnaj9t3w7VMIIr666ctQ3fcuAfl3TqQRawyFnORX5tS7zSeUnTACAp9SKjZyHNSskuS62vu6DWt5pif/McWCrta2JI3XoSXPSpkiMSh7le6B4PQj6iJDjdhEeOiDH/BKhTrqyjBb8tcV3d3hmBoP/wPyIJBej/GmGzArK8GdGblrOfPfNkYBRVU3DpAZJr70ltb10H6MfLFaQ+DNgYqK4xcu99LZuC4B3/KN7IPrb4meYFioSkmZ2nu40rkxpaGMYj5nnJJjAI+1ReJUQ3aD8XsUipDM="
       
-    #   jdk:
-    #     - oraclejdk8
+      jdk:
+        - oraclejdk8
 
-    #   script:
-    #     - sudo chmod +x $(which sonar-scanner)
-    #     - export PATH=$(dirname $(which sonar-scanner)):$PATH
-    #     - sonar-scanner
+      script:
+        - sudo chmod +x $(which sonar-scanner)
+        - export PATH=$(dirname $(which sonar-scanner)):$PATH
+        - sonar-scanner
 
     # - stage: Terraform run
     #   env:
