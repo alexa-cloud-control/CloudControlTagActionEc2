@@ -67,28 +67,27 @@ def cloud_control_tag_action_ec2(event, context):
                     or (command_key == 'delete_tags'
                         and tag_status in {'tag_match', 'tag_different'})
                 ):
-                    ec2_client.command_key(
-                        DryRun=False,
-                        Resources=[
+                ec2_client.command_key(
+                    DryRun=False,
+                    Resources=[
                         ec2_instance,
-                        ],
-                        Tags=[
-                            {
-                                'Key': event["body"]["TagKey"].capitalize(),
-                                'Value': event["body"]["TagValue"]
-                            },
-                        ]
-                    )
-                    msg = (
-                        "{} Tag key {} for instance {} {}d.".format(
+                    ],
+                    Tags=[
+                        {
+                            'Key': event["body"]["TagKey"].capitalize(),
+                            'Value': event["body"]["TagValue"]
+                        },
+                    ]
+                )
+                msg = (
+                    "{} Tag key {} for instance {} {}d.".format(
                         tmp_msg,
                         event["body"]["TagKey"].capitalize(),
                         event["body"]["InstanceName"],
                         event["body"]["TagAction"]
-                        )
                     )
-                    return {"msg": msg}
-        
+                )
+                return {"msg": msg}
     msg = (
         "I cannot perform {}. "
         "Nothing like this exists in my database."
