@@ -15,7 +15,6 @@ def cloud_control_tag_action_ec2(event, context):
             }
         ]
     )
-    
     instance_list = []
     for reservation in response['Reservations']:
         for instance in reservation['Instances']:
@@ -26,8 +25,6 @@ def cloud_control_tag_action_ec2(event, context):
         return {"msg": msg}
 
     ec2_instance = ec2.instances.filter(InstanceIds=instance_list)
-    
-    print(instance_list)
     # validate tag
     tag_response = ec2_client.describe_tags(
         Filters=[
@@ -73,7 +70,7 @@ def cloud_control_tag_action_ec2(event, context):
                     ec2_client.command_key(
                         DryRun=False,
                         Resources=[
-                            ec2_instance,
+                        ec2_instance,
                         ],
                         Tags=[
                             {
@@ -84,16 +81,16 @@ def cloud_control_tag_action_ec2(event, context):
                     )
                     msg = (
                         "{} Tag key {} for instance {} {}d.".format(
-                            tmp_msg,
-                            event["body"]["TagKey"].capitalize(),
-                            event["body"]["InstanceName"],
-                            event["body"]["TagAction"]
+                        tmp_msg,
+                        event["body"]["TagKey"].capitalize(),
+                        event["body"]["InstanceName"],
+                        event["body"]["TagAction"]
                         )
                     )
                     return {"msg": msg}
         
     msg = (
-            "I cannot perform {}. "
-            "Nothing like this exists in my database."
-        ).format(action)
+        "I cannot perform {}. "
+        "Nothing like this exists in my database."
+    ).format(action)
     return {"msg": msg}
