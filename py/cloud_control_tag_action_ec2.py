@@ -15,6 +15,7 @@ def cloud_control_tag_action_ec2(event, context):
             }
         ]
     )
+    
     instance_list = []
     for reservation in response['Reservations']:
         for instance in reservation['Instances']:
@@ -25,18 +26,19 @@ def cloud_control_tag_action_ec2(event, context):
         return {"msg": msg}
 
     ec2_instance = ec2.instances.filter(InstanceIds=instance_list)
-
+    
+    print(instance_list)
     # validate tag
     tag_response = ec2_client.describe_tags(
         Filters=[
             {
                 'Name': 'resource-id',
-                'Values': [
-                    ec2_instance,
-                ],
+                'Values': [instance_list[0]],
             },
         ],
     )
+    tag_status = ""
+    tmp_msg = ""
     for tag in tag_response['Tags']:
         if tag['Key'] == event["body"]["TagKey"]:
             if tag['Value'] == event["body"]["TagValue"]:
@@ -45,7 +47,7 @@ def cloud_control_tag_action_ec2(event, context):
                 )
                 tag_status = "tag_match" #0
             else:
-                tmp_msg = "tag {} found, but value is different".format(
+                tmp_msg = "tag {} found, but value is different.".format(
                     event["body"]["TagKey"]
                 )
                 tag_status = "tag_different" #1
@@ -59,14 +61,6 @@ def cloud_control_tag_action_ec2(event, context):
     }
 
     action = event["body"]["TagAction"]
-
-    if action not in commands:
-        msg = (
-            "I cannot perform {}. "
-            "Nothing like this exists in my database."
-        ).format(action)
-        return {"msg": msg}
-
     for command_key in commands:
         aliases = commands[command_key]
         if action in aliases:
@@ -76,25 +70,30 @@ def cloud_control_tag_action_ec2(event, context):
                     or (command_key == 'delete_tags'
                         and tag_status in {'tag_match', 'tag_different'})
                 ):
-                ec2_client.command_key(
-                    DryRun=False,
-                    Resources=[
-                        ec2_instance,
-                    ],
-                    Tags=[
-                        {
-                            'Key': event["body"]["TagKey"].capitalize(),
-                            'Value': event["body"]["TagValue"]
-                        },
-                    ]
-                )
-
+                    ec2_client.command_key(
+                        DryRun=False,
+                        Resources=[
+                            ec2_instance,
+                        ],
+                        Tags=[
+                            {
+                                'Key': event["body"]["TagKey"].capitalize(),
+                                'Value': event["body"]["TagValue"]
+                            },
+                        ]
+                    )
+                    msg = (
+                        "{} Tag key {} for instance {} {}d.".format(
+                            tmp_msg,
+                            event["body"]["TagKey"].capitalize(),
+                            event["body"]["InstanceName"],
+                            event["body"]["TagAction"]
+                        )
+                    )
+                    return {"msg": msg}
+        
     msg = (
-        "{}. Tag key {} for instance {} {}d.".format(
-            tmp_msg,
-            event["body"]["TagKey"].capitalize(),
-            event["body"]["InstanceName"],
-            event["body"]["TagAction"]
-        )
-    )
+            "I cannot perform {}. "
+            "Nothing like this exists in my database."
+        ).format(action)
     return {"msg": msg}
