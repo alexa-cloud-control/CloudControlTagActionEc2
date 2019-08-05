@@ -1,7 +1,7 @@
 """ Lambda function - add/change/remove tag for ec2 """
 import boto3
 
-def cloud_control_state_action_ec2(event, context):
+def cloud_control_tag_action_ec2(event, context):
     """ Lambda function - add/change/remove tag for ec2 """
 
     # validate instance name
