@@ -1,0 +1,108 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Alexa CloudControl - Tag Action EC2
+
+Resources:
+  AlexaCloudControlTagActionEc2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      Description: IAM role for Alexa-CloudControl TagAction EC2 function created by Cloudformation
+      Path: /cloudcontrol/
+      RoleName: iam-role-alexa-cloudcontrol-tagactionec2-function
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Policies:
+        - PolicyName: iam-policy-alexa-cloudcontrol-tagactionec2-function
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - 
+                Effect: Allow
+                Action: 
+                  - s3:ListBucket
+                  - s3:GetObject
+                Resource: 
+                  -
+                    !Join
+                      - ''
+                      - - 'arn:aws:s3:::'
+                        - !ImportValue Alexa-CloudControl-Infrastructure-ArtifactsBucket
+              -
+                Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:DeleteItem
+                Resource:
+                  -
+                    !Join
+                      - ''
+                      - - 'arn:aws:dynamodb:eu-west-1:ACCOUNTNUMBER:table/'
+                        - !ImportValue Alexa-CloudControl-Infrastructure-ContextTable
+              -
+                Effect: Allow
+                Action:
+                  - cloudwatch:GetMetricStatistics
+                  - cloudwatch:ListMetrics
+                Resource: '*'
+              -
+                Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                Resource:
+                  - arn:aws:logs:eu-west-1:ACCOUNTNUMBER:*
+              - 
+                Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: arn:aws:logs:eu-west-1:ACCOUNTNUMBER:log-group:/aws/lambda/*
+              -
+                Effect: Allow
+                Action: 'ec2:*'
+                Resource: '*'
+  
+  TagActionEc2FunctionLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: Alexa CloudControl Tag Action EC2 Function
+      FunctionName: CloudControlTagActionEc2
+      Code:
+        S3Bucket: !ImportValue Alexa-CloudControl-Infrastructure-ArtifactsBucket
+        S3Key: CloudControlTagActionEc2.zip
+      Runtime: python3.6
+      Handler: cloud_control_tag_action_ec2.cloud_control_tag_action_ec2
+      MemorySize: 128
+      Timeout: 10
+      Environment:
+        Variables:
+          table: CONTEXTTABLE
+      Role: !GetAtt AlexaCloudControlTagActionEc2Role.Arn
+      Tags:
+        - 
+          Key: Name
+          Value: Alexa-CloudControl-TagAction-Ec2-Function
+        -
+          Key: Project
+          Value: Alexa-CloudControl
+        -
+          Key: Purpose
+          Value: Alexa CloudControl Tag Action EC2 Function
+
+  FunctionTrigger:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !GetAtt 
+        - TagActionEc2FunctionLambda
+        - Arn
+      Principal: 'lambda.amazonaws.com'
+      SourceArn: !GetAtt
+        - CloudControlMainFunction
+        - Arn
