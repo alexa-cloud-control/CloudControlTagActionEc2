@@ -95,14 +95,14 @@ Resources:
           Key: Purpose
           Value: Alexa CloudControl Tag Action EC2 Function
 
-  FunctionTrigger:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: 'lambda:InvokeFunction'
-      FunctionName: !GetAtt 
-        - TagActionEc2FunctionLambda
-        - Arn
-      Principal: 'lambda.amazonaws.com'
-      SourceArn: !GetAtt
-        - CloudControlMainFunction
-        - Arn
+  # FunctionTrigger:
+  #   Type: AWS::Lambda::Permission
+  #   Properties:
+  #     Action: 'lambda:InvokeFunction'
+  #     FunctionName: !GetAtt 
+  #       - TagActionEc2FunctionLambda
+  #       - Arn
+  #     Principal: 'lambda.amazonaws.com'
+  #     SourceArn: !GetAtt
+  #       - CloudControlMainFunction
+  #       - Arn
