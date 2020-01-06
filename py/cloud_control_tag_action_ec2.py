@@ -25,6 +25,7 @@ def cloud_control_tag_action_ec2(event, context):
         return {"msg": msg}
 
     ec2_instance = ec2.instances.filter(InstanceIds=instance_list)
+
     # validate tag
     tag_response = ec2_client.describe_tags(
         Filters=[
@@ -37,20 +38,20 @@ def cloud_control_tag_action_ec2(event, context):
     tag_status = ""
     tmp_msg = ""
     for tag in tag_response['Tags']:
-        if tag['Key'] == event["body"]["TagKey"]:
+        if tag['Key'] == event["body"]["TagKey"].capitalize():
             if tag['Value'] == event["body"]["TagValue"]:
                 tmp_msg = "Tag {} with value {} found.".format(
-                    event["body"]["TagKey"], event["body"]["TagValue"]
+                    event["body"]["TagKey"].capitalize(), event["body"]["TagValue"]
                 )
                 tag_status = "tag_match" #0
             else:
                 tmp_msg = "tag {} found, but value is different.".format(
-                    event["body"]["TagKey"]
+                    event["body"]["TagKey"].capitalize()
                 )
                 tag_status = "tag_different" #1
         else:
             tag_status = "tag_not_found" #2
-            tmp_msg = "Tag {} not found!".format(event["body"]["TagKey"])
+            tmp_msg = "Tag {} not found!".format(event["body"]["TagKey"].capitalize())
 
     commands = {
         'create_tags': ['create', 'add', 'update', 'change'],
@@ -67,18 +68,32 @@ def cloud_control_tag_action_ec2(event, context):
                     or (command_key == 'delete_tags'
                         and tag_status in {'tag_match', 'tag_different'})
                 ):
-                ec2_client.command_key(
-                    DryRun=False,
-                    Resources=[
-                        ec2_instance,
-                    ],
-                    Tags=[
-                        {
-                            'Key': event["body"]["TagKey"].capitalize(),
-                            'Value': event["body"]["TagValue"]
-                        },
-                    ]
-                )
+                if (command_key == 'create_tags'):
+                    ec2_client.create_tags(
+                        DryRun=False,
+                        Resources=[
+                            instance_list[0],
+                        ],
+                        Tags=[
+                            {
+                                'Key': event["body"]["TagKey"].capitalize(),
+                                'Value': event["body"]["TagValue"]
+                            },
+                        ]
+                    )
+                else:
+                    ec2_client.delete_tags(
+                        DryRun=False,
+                        Resources=[
+                            instance_list[0],
+                        ],
+                        Tags=[
+                            {
+                                'Key': event["body"]["TagKey"].capitalize(),
+                                'Value': event["body"]["TagValue"]
+                            },
+                        ]
+                    )
                 msg = (
                     "{} Tag key {} for instance {} {}d.".format(
                         tmp_msg,
