@@ -1,9 +1,82 @@
 """ Lambda function - add/change/remove tag for ec2 """
 import boto3
+import json
+
+def write_to_dynamo(context):
+    """ Write data to DynamoDB table """
+    dynamodb_resource = boto3.resource('dynamodb')
+    dynamodb_client = boto3.client('dynamodb')
+    # function env variable - to change
+    context_table = dynamodb_resource.Table('alexa-cloudcontrol-context')
+    for context_key, context_value in context.items():
+        try:
+            context_table.put_item(
+                Item={
+                    'Element': context_key,
+                    'ElementValue': context_value
+                }
+            )
+        except dynamodb_client.exceptions.ClientError as error:
+            msg = "Something wrong with my table!"
+            print(error)
+            return {"msg": msg}
+    return 0
+
+def validate_with_dynamo(context):
+    """ Read context from DynamoDB table """
+    context_list=[
+        'the-same',
+        'same',
+        'like-last-one',
+        'like-last-1',
+        'last-one',
+        'last-1',
+        'last',
+        'previous',
+        'previous-one',
+        'previous-1',
+        'like-before',
+        'like-last-time'
+    ]
+    dynamodb_resource = boto3.resource('dynamodb')
+    dynamodb_client = boto3.client('dynamodb')
+    context_table = dynamodb_resource.Table('alexa-cloudcontrol-context')
+    function_payload = {}
+    # Check if context contains context_list. If yes, check dynamo if there is a value
+    # for it. If no, throw error.
+    for context_key, context_value in context.items():
+        if context_value in context_list:
+            try:
+                response = context_table.get_item(
+                    Key={
+                        'Element': context_key
+                    }
+                )
+                function_payload[context_key] = response['Item']['ElementValue']
+            except dynamodb_client.exceptions.ClientError as error:
+                msg = "I don't remember anything for {}".format(
+                    context_key
+                )
+                print(error)
+                return {"msg": msg}
+            
+        else:
+            function_payload[context_key] = context_value
+    json_payload = json.dumps(function_payload)
+    return json_payload
 
 def cloud_control_tag_action_ec2(event, context):
     """ Lambda function - add/change/remove tag for ec2 """
 
+    msg = ""
+    validate_with_context_payload = {
+        "LastInstanceName": event["body"]["InstanceName"]
+    }
+    response = {}
+    response = validate_with_dynamo(validate_with_context_payload)
+    payload_response = json.loads(response)
+    ValidatedInstanceName = payload_response["LastInstanceName"]
+    
     # validate instance name
     ec2 = boto3.resource('ec2')
     ec2_client = boto3.client('ec2')
@@ -11,7 +84,7 @@ def cloud_control_tag_action_ec2(event, context):
         Filters=[
             {
                 'Name': 'tag:Name',
-                'Values': [event["body"]["InstanceName"]]
+                'Values': [ValidatedInstanceName]
             }
         ]
     )
@@ -21,7 +94,7 @@ def cloud_control_tag_action_ec2(event, context):
             instance_list.append(instance['InstanceId'])
 
     if not instance_list:
-        msg = "I cannot find the instance with name {}.".format(event["body"]["InstanceName"])
+        msg = "I cannot find the instance with name {}.".format(ValidatedInstanceName)
         return {"msg": msg}
 
     ec2_instance = ec2.instances.filter(InstanceIds=instance_list)
@@ -37,6 +110,7 @@ def cloud_control_tag_action_ec2(event, context):
     )
     tag_status = ""
     tmp_msg = ""
+    # to refactor
     for tag in tag_response['Tags']:
         if tag['Key'] == event["body"]["TagKey"].capitalize():
             if tag['Value'] == event["body"]["TagValue"]:
@@ -98,7 +172,7 @@ def cloud_control_tag_action_ec2(event, context):
                     "{} Tag key {} for instance {} {}d.".format(
                         tmp_msg,
                         event["body"]["TagKey"].capitalize(),
-                        event["body"]["InstanceName"],
+                        ValidatedInstanceName,
                         event["body"]["TagAction"]
                     )
                 )
@@ -107,4 +181,8 @@ def cloud_control_tag_action_ec2(event, context):
         "I cannot perform {}. "
         "Nothing like this exists in my database."
     ).format(action)
+    write_to_table_payload = {
+        "LastInstanceName": ValidatedInstanceName
+    }
+    write_to_dynamo(write_to_table_payload)
     return {"msg": msg}
